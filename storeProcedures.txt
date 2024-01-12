@@ -1,0 +1,214 @@
+   protected void Button1_Click(object sender, EventArgs e)
+        {
+            string name, Utype;
+            Connect obj = new Connect();
+            DataSet ds = new DataSet();
+            SqlConnection con = new SqlConnection(obj.ConnectStr());
+            SqlDataAdapter da = new SqlDataAdapter("SelectUserDetails", con);
+            da.SelectCommand.CommandType = System.Data.CommandType.StoredProcedure;
+            //validation of textboxes
+            da.SelectCommand.Parameters.AddWithValue("@uname",TextBox1.Text);
+            da.SelectCommand.Parameters.AddWithValue("@pwd", TextBox2.Text);
+            da.Fill(ds);
+            if (ds.Tables.Count > 0)
+            {
+                name = ds.Tables[0].Rows[0][0].ToString();
+                Utype = ds.Tables[0].Rows[0][1].ToString();
+                if (Utype == "Agent")
+                {
+                    Response.Redirect("agent.aspx");
+                }
+
+                else if (Utype == "cleark")
+                {
+                    Response.Redirect("clerk.aspx");
+                }
+                 else if (Utype == "RTO")
+                {
+                    Response.Redirect("Rto.aspx");
+                }
+                
+            }
+            else
+            {
+
+            }
+        }
+    }
+
+======================================================================================
+insert new user===> store procedure
+
+ALTER PROCEDURE [dbo].[InsertNewUser]
+	@Name varchar(50),
+	@address varchar(1000),
+	@Mob varchar(50),
+	@Uname varchar(50),
+	@pwd varchar(50),
+	@PRQ varchar(50),
+	@PRA varchar(50),
+	
+
+	@out varchar(20)out
+AS
+BEGIN
+	Declare @Cnt int
+	Declare @InsertedID int
+
+	SET NOCOUNT ON;
+	set @Cnt=(select count(UserName) from [UserProfile] where UserName=@Uname)
+	if(@Cnt=0)
+	begin
+		insert into [UserProfile] values(@Name,@address,@Mob,@Uname,@pwd,@PRQ,@PRA,'N')
+		Set @InsertedID=(select Id from [UserProfile] where UserName=@Uname and M_Number=@Mob)
+		insert into LoginStatus_X values(@InsertedID,'N')
+		Set @out=(Select 'Success')
+	end
+else
+	Set @out=(select' user name unavilable')
+END
+
+========================================================================
+
+USE [RTOApp]
+GO
+/****** Object:  StoredProcedure [dbo].[SelectUserDetails]    Script Date: 01-01-2024 09:33:05 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[SelectUserDetails]
+	@uname varchar(50),
+	@pwd varchar(50)
+AS
+BEGIN
+	Declare @Cnt int
+	declare @CntStatus int
+	SET NOCOUNT ON;
+	set @cnt=(select count(username) from UserProfile1 where UserName=@uname and pwd=@pwd)
+	If(@cnt!=0)
+	begin
+	Select up.UserName ,Ur.UserType from UserProfile1 UP
+	inner join LoginStatus_X LS on LS.ParentId=UP.id
+	inner join UserRole UR on ur.Id=up.UserTypeId
+	where up.UserName=@uname and up.Pwd=@pwd and up.IsActive='y'
+	and LS.IsEnable='y'
+	update UserProfile1 set failcount=0 where username=@uname
+	end 
+	else
+	begin
+	set @CntStatus=(select failcount from UserProfile1 where UserName=@uname)
+	set @CntStatus=@CntStatus+1
+	update UserProfile1 set failCount=@CntStatus where username=@uname
+    end
+	if(@CntStatus=3)
+	update UserProfile1 set IsActive='N' where username=@uname
+END
+==========================================================================================
+
+insert data====>
+
+USE [TestDDDB]
+GO
+/****** Object:  StoredProcedure [dbo].[InsertVal]    Script Date: 01-01-2024 09:34:32 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[InsertVal]
+	-- Add the parameters for the stored procedure here
+	@uname varchar(50),
+	@pwd varchar(50),
+	@id int out
+AS
+BEGIN
+	declare @cnt int
+	SET NOCOUNT ON;
+	set @cnt=(select count(UserName) from[user]
+	where UserName=@uname)
+	if(@cnt=0)
+	begin
+	insert into [user] values(@uname,@pwd)
+	set @id=1
+	end
+	else
+	set @id=-1;
+END
+============================================================================================
+
+show data ====>
+
+USE [TestDDDB]
+GO
+/****** Object:  StoredProcedure [dbo].[selectData]    Script Date: 01-01-2024 09:35:16 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[selectData]
+	@uname varchar(50),
+	@pwd varchar(50)
+AS
+BEGIN
+	
+	SET NOCOUNT ON;
+	/*SELECT count(Username) from [user]where UserName=@uname and pwd=@pwd*/
+	SELECT Username from [user]where UserName=@uname and pwd=@pwd
+END
+===============================================================================================================
+
+update data====>
+
+USE [TestDDDB]
+GO
+/****** Object:  StoredProcedure [dbo].[UpdateData]    Script Date: 01-01-2024 09:35:52 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[UpdateData]
+	@uname  varchar(50),
+	@pwd  varchar(50),
+	@NewUname varchar(50),
+	@NewPwd varchar(50)
+	
+AS
+BEGIN
+	
+	SET NOCOUNT ON;
+
+    
+	  BEGIN  
+            UPDATE [user] SET UserName=@NewUname,Pwd=@NewPwd WHERE UserName=@uname and Pwd=@pwd ; 
+        END 
+END
+========================================================================================================
+
+
+delete data=====>
+
+
+USE [TestDDDB]
+GO
+/****** Object:  StoredProcedure [dbo].[DeleteData]    Script Date: 01-01-2024 09:36:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[DeleteData] 
+	@id int
+AS
+BEGIN
+	
+	SET NOCOUNT ON;
+
+     BEGIN  
+          delete from [user] where ID=@id; 
+        END
+END
+===========================================================================================
